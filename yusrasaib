@@ -1,0 +1,55 @@
+!pip install pandas numpy matplotlib plotly ipywidgets
+
+import json
+import pandas as pd
+import numpy as np
+import plotly.express as px
+import ipywidgets as widgets
+from pathlib import Path
+from urllib.request import urlretrieve
+
+json_filename = 'covid_data.json'
+
+def refresh_data():
+    # See from https://coronavirus.data.gov.uk/details/download
+    metrics = ['hospitalCases']
+    areatype = 'nation'
+    
+    # Couldn't Find Api, so used json file instead
+    # Acquiring Data in a json file
+    if (Path(json_filename).exists()):
+        Path(json_filename).unlink()
+    metrics_request_query = map(lambda x: f'metric={x}', metrics)
+    url = f'https://api.coronavirus.data.gov.uk/v2/data?areaType={areatype}&{"&".join(metrics_request_query)}&format=json'
+    urlretrieve(url, filename=json_filename) # Downloads json file
+
+df = pd.DataFrame()
+
+def store_data():        
+    global df
+    # Reading Json File 
+    with open(json_filename) as json_file:
+        df = pd.DataFrame(json.load(json_file)['body'])
+    # Data Cleaning
+    # Don't need whole column with one single value
+    df.drop(columns=['areaType'], inplace=True)
+
+# You Can Use Matlplotlib.plt too but plotly makes graph more prettier
+def draw_scatter(x, y):
+    display(px.scatter(df, x=x, y=y, title=f'{x} Vs {y}'))
+
+def draw_line(x, y):
+    display(px.line(df, x=x, y=y, title=f'{x} Vs {y}'))
+
+def draw_box(y):
+    display(px.box(df, y=y))
+    
+    refresh_data()
+store_data()
+
+x = 'date'
+y = 'hospitalCases'
+
+draw_scatter(x, y)
+draw_line(x, y)
+draw_box(y)
